@@ -29,7 +29,7 @@ mongoose.connect('mongodb://localhost:27017/mestodb', {
   useCreateIndex: true,
   useFindAndModify: false,
 });
-//mongoose.set('runValidators', true);
+mongoose.set('runValidators', true);
 
 app.post('/signin', celebrate({
   body: Joi.object().keys({
@@ -37,17 +37,17 @@ app.post('/signin', celebrate({
     password: Joi.string().min(6).pattern(/\S+/),
   }),
 }), login);
-app.post('/signup', 
-celebrate({
-  body: Joi.object().keys({
-    name: Joi.string().required().min(2).max(30),
-    about: Joi.string().required().min(2).max(30),
-    avatar: Joi.string().required().pattern(/(https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|www\.[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9]+\.[^\s]{2,}|www\.[a-zA-Z0-9]+\.[^\s]{2,})/),
-    email: Joi.string().required().pattern(/^([\w-]\.?)+@([\w-]+\.)+[\w-]+/),
-    password: Joi.string().min(8).pattern(/\S+/),
+app.post('/signup',
+  celebrate({
+    body: Joi.object().keys({
+      name: Joi.string().required().min(2).max(30),
+      about: Joi.string().required().min(2).max(30),
+      avatar: Joi.string().required().pattern(/(https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|www\.[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9]+\.[^\s]{2,}|www\.[a-zA-Z0-9]+\.[^\s]{2,})/),
+      email: Joi.string().required().pattern(/^([\w-]\.?)+@([\w-]+\.)+[\w-]+/),
+      password: Joi.string().min(8).pattern(/\S+/),
+    }),
   }),
-}), 
-createUser);
+  createUser);
 
 app.use(auth);
 
@@ -63,9 +63,9 @@ app.use(errors());
 app.use((err, req, res, next) => {
   const { statusCode = 500, message } = err;
 
-if (err.name === 'DocumentNotFoundError') {
-       return res.status(404).send({ message: 'Нет такой карточки' });
-      };
+  if (err.name === 'DocumentNotFoundError') {
+    return res.status(404).send({ message: 'Нет такой карточки' });
+  }
   if (err.name === 'ValidationError') {
     return res.status(400).send('Ошибка валидации поле');
   }

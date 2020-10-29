@@ -2,7 +2,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/user');
 const RequestError = require('../errors/req_err');
-const NotFoundError = require('../errors/not-found_err')
+const NotFoundError = require('../errors/not-found_err');
 
 const { NODE_ENV, JWT_SECRET } = process.env;
 
@@ -26,7 +26,7 @@ const createUser = (req, res, next) => {
     name, about, avatar, email, password,
   } = req.body;
   if (!password || password.length < 8) {
-    next(new RequestError('Пароль не соответствует требованиям'))
+    next(new RequestError('Пароль не соответствует требованиям'));
     return;
   }
 

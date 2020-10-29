@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const AuthError = require('../errors/auth_err')
+const AuthError = require('../errors/auth_err');
 
 const { NODE_ENV, JWT_SECRET } = process.env;
 

@@ -1,5 +1,5 @@
 const Card = require('../models/card');
-const ForbiddenError = require('../errors/forbidden_err')
+const ForbiddenError = require('../errors/forbidden_err');
 
 const readCards = (req, res, next) => {
   Card.find({})
@@ -22,7 +22,7 @@ const deleteCard = (req, res, next) => {
       const owner = card.owner._id.toString();
 
       if (cardOwner !== owner) {
-        throw new ForbiddenError('Нельзя удалить чужую карточку')
+        throw new ForbiddenError('Нельзя удалить чужую карточку');
       } else {
         Card.deleteOne(card)
           .then(() => res.send({ data: card }))
