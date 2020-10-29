@@ -9,6 +9,7 @@ const usersRouter = require('./routes/users');
 const auth = require('./middlewares/auth');
 const { login, createUser } = require('./controllers/users');
 const { requestLogger, errorLogger } = require('./middlewares/logger');
+const RequestError = require('./errors/req_err');
 
 const { PORT = 3000 } = process.env;
 const app = express();
@@ -28,17 +29,32 @@ mongoose.connect('mongodb://localhost:27017/mestodb', {
   useCreateIndex: true,
   useFindAndModify: false,
 });
-mongoose.set('runValidators', true);
+//mongoose.set('runValidators', true);
 
-app.post('/signin', login);
-app.post('/signup', createUser);
+app.post('/signin', celebrate({
+  body: Joi.object().keys({
+    email: Joi.string().required().pattern(/^([\w-]\.?)+@([\w-]+\.)+[\w-]+/),
+    password: Joi.string().min(6).pattern(/\S+/),
+  }),
+}), login);
+app.post('/signup', 
+celebrate({
+  body: Joi.object().keys({
+    name: Joi.string().required().min(2).max(30),
+    about: Joi.string().required().min(2).max(30),
+    avatar: Joi.string().required().pattern(/(https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|www\.[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9]+\.[^\s]{2,}|www\.[a-zA-Z0-9]+\.[^\s]{2,})/),
+    email: Joi.string().required().pattern(/^([\w-]\.?)+@([\w-]+\.)+[\w-]+/),
+    password: Joi.string().min(8).pattern(/\S+/),
+  }),
+}), 
+createUser);
 
 app.use(auth);
 
 app.use('/', cardsRouter);
 app.use('/', usersRouter);
-app.use('/', (req, res) => {
-  res.status(404).send({ message: 'Запрашиваемый ресурс не найден' });
+app.use('*', () => {
+  throw new RequestError('Запрашиваемый ресурс не найден');
 });
 app.use(errorLogger);
 app.use(errors());
@@ -47,14 +63,14 @@ app.use(errors());
 app.use((err, req, res, next) => {
   const { statusCode = 500, message } = err;
 
+if (err.name === 'DocumentNotFoundError') {
+       return res.status(404).send({ message: 'Нет такой карточки' });
+      };
   if (err.name === 'ValidationError') {
-    return res.status(400).send('Ошибка валидации полей');
+    return res.status(400).send('Ошибка валидации поле');
   }
   if (err.name === 'CastError') {
     return res.status(400).send({ message: 'Некорректный ID' });
-  }
-  if (err.name === 'Нет прав') {
-    return res.status(403).send({ message: err.name });
   }
   if (err.name === 'MongoError' && err.code === 11000) {
     return res.status(409).send({ message: 'Такая почта уже зарегистрирована' });
