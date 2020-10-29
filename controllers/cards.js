@@ -1,25 +1,20 @@
 const Card = require('../models/card');
+const ForbiddenError = require('../errors/forbidden_err')
 
-const readCards = (req, res) => {
+const readCards = (req, res, next) => {
   Card.find({})
     .then((card) => res.send({ data: card }))
-    .catch(() => res.status(500).send({ message: 'На сервере произошла ошибка' }));
+    .catch(next);
 };
 
-const createCard = (req, res) => {
+const createCard = (req, res, next) => {
   const { name, link } = req.body;
   Card.create({ name, link, owner: req.user._id })
     .then((card) => res.status(201).send({ data: card }))
-    .catch((err) => {
-      if (err.name !== 'ValidationError') {
-        res.status(500).send({ message: 'Ошибка сервера' });
-      } else {
-        res.status(400).send({ message: 'Переданы некорректные данные' });
-      }
-    });
+    .catch(next);
 };
 
-const deleteCard = (req, res) => {
+const deleteCard = (req, res, next) => {
   const cardOwner = req.user._id;
   Card.findById(req.params.id)
     .orFail()
@@ -27,23 +22,15 @@ const deleteCard = (req, res) => {
       const owner = card.owner._id.toString();
 
       if (cardOwner !== owner) {
-        res.status(403).send({ message: 'Нельзя удалить чужую карточку' });
+        throw new ForbiddenError('Нельзя удалить чужую карточку')
       } else {
         Card.deleteOne(card)
           .then(() => res.send({ data: card }))
-          .catch(() => {
-            res.status(500).send({ message: 'На сервере произошла ошибка' });
-          });
+          .catch(next);
       }
     })
 
-    .catch((err) => {
-      if (err.name === 'DocumentNotFoundError') {
-        res.status(404).send({ message: 'Нет такой карточки' });
-      } else if (err.name === 'CastError') {
-        res.status(400).send({ message: 'Некорректный ID' });
-      } else { res.status(500).send({ message: 'На сервере произошла ошибка' }); }
-    });
+    .catch(next);
 };
 
 module.exports = { readCards, createCard, deleteCard };

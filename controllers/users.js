@@ -1,36 +1,32 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/user');
+const RequestError = require('../errors/req_err');
+const NotFoundError = require('../errors/not-found_err')
 
 const { NODE_ENV, JWT_SECRET } = process.env;
 
-const readUsers = (req, res) => {
+const readUsers = (req, res, next) => {
   User.find({})
     .then((user) => res.send({ data: user }))
-    .catch(() => res.status(500).send({ message: 'На сервере произошла ошибка' }));
+    .catch(next);
 };
 
-const readUserById = (req, res) => {
+const readUserById = (req, res, next) => {
   User.findById(req.params.id)
-    .orFail()
+    .orFail(() => {
+      throw new NotFoundError('Пользователь не найден');
+    })
     .then((user) => res.send({ data: user }))
-    .catch((err) => {
-      if (err.name === 'DocumentNotFoundError') {
-        res.status(404).send({ message: 'Пользователь не найден' });
-      } else if (err.name === 'CastError') {
-        res.status(400).send({ message: 'Некорректный ID' });
-      } else {
-        res.status(500).send({ message: 'На сервере произошла ошибка' });
-      }
-    });
+    .catch(next);
 };
 
-const createUser = (req, res) => {
+const createUser = (req, res, next) => {
   const {
     name, about, avatar, email, password,
   } = req.body;
   if (!password || password.length < 8) {
-    res.status(400).send({ message: 'Пароль не соответствует требованиям' });
+    next(new RequestError('Пароль не соответствует требованиям'))
     return;
   }
 
@@ -44,24 +40,10 @@ const createUser = (req, res) => {
       avatar: user.avatar,
       email: user.email,
     }))
-    .catch((err) => {
-      let errStatus;
-      let errMessage;
-      if (err.name === 'MongoError' && err.code === 11000) {
-        errStatus = 409;
-        errMessage = 'Повторный email';
-      } else if (err.name === 'ValidationError') {
-        errStatus = 400;
-        errMessage = 'Ошибка валидации полей пользователя';
-      } else {
-        errStatus = 500;
-        errMessage = 'На сервере произошла ошибка';
-      }
-      res.status(errStatus).send({ message: errMessage });
-    });
+    .catch(next);
 };
 
-const login = (req, res) => {
+const login = (req, res, next) => {
   const { email, password } = req.body;
 
   return User.findUserByCredentials(email, password)
@@ -73,12 +55,10 @@ const login = (req, res) => {
         maxAge: 3600000 * 24 * 7,
         httpOnly: true,
         sameSite: true,
-      })
-        .end();
+      }),
+        res.send('Успешно');
     })
-    .catch((err) => {
-      res.status(401).send({ message: err.message });
-    });
+    .catch(next);
 };
 
 module.exports = {
